@@ -369,7 +369,7 @@ B.Tech – Artificial Intelligence and Data Science
 
 Sri Krishna College of Engineering and Technology
 
-Expected Graduation: 2028
+Graduation: 2028
 
 GitHub: [padmacharanas](https://github.com/padmacharanas)
 
