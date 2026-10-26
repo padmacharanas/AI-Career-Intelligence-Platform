@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
+
+# OS files
+.DS_Store
+
+# Uploaded resumes and user files
+uploads/
+
+# Frontend dependencies and build
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+*.log

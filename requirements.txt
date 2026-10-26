@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pymupdf
+scikit-learn
+pandas
+numpy
+sqlalchemy
+pymysql
+python-dotenv
+python-multipart
+pytest
+pwdlib[argon2]
+email-validator
+PyJWT[crypto]
