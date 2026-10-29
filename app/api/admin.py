@@ -9,12 +9,16 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse
 
+from pydantic import BaseModel, EmailStr, Field
+
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
 from app.database.user_model import User
 from app.database.resume_model import Resume
 from app.database.skill_model import ResumeSkill
+from app.database.ats_analysis_model import ATSAnalysis
+from app.database.learning_progress_model import LearningProgress
 from app.database.job_role_model import JobRole, JobRoleSkill
 
 from app.api.dependencies import get_db, require_admin
@@ -27,6 +31,19 @@ router = APIRouter(
 
 
 # ==========================================
+# STUDENT PROFILE UPDATE SCHEMA
+# ==========================================
+
+class StudentUpdateRequest(BaseModel):
+    full_name: str = Field(min_length=1, max_length=150)
+    email: EmailStr
+    college: str = Field(min_length=1, max_length=255)
+    degree: str = Field(min_length=1, max_length=100)
+    branch: str = Field(min_length=1, max_length=150)
+    graduation_year: int = Field(ge=2000, le=2100)
+
+
+# ==========================================
 # ADMIN DASHBOARD
 # ==========================================
 
@@ -36,7 +53,6 @@ def get_admin_dashboard(
     admin: User = Depends(require_admin)
 ):
 
-    # Count only registered student accounts
     total_users = (
         db.query(func.count(User.id))
         .filter(User.role == "student")
@@ -45,15 +61,12 @@ def get_admin_dashboard(
 
     total_students = total_users
 
-    # Count admin accounts separately
     total_admins = (
         db.query(func.count(User.id))
         .filter(User.role == "admin")
         .scalar()
     ) or 0
 
-    # Count actual student resumes.
-    # DISTINCT prevents duplicate resume counting.
     total_resumes = (
         db.query(func.count(func.distinct(Resume.id)))
         .join(User, Resume.user_id == User.id)
@@ -61,13 +74,11 @@ def get_admin_dashboard(
         .scalar()
     ) or 0
 
-    # Count all available job roles
     total_job_roles = (
         db.query(func.count(JobRole.id))
         .scalar()
     ) or 0
 
-    # Count unique skills extracted from student resumes only
     total_unique_skills = (
         db.query(func.count(func.distinct(ResumeSkill.skill_name)))
         .join(Resume, ResumeSkill.resume_id == Resume.id)
@@ -76,7 +87,6 @@ def get_admin_dashboard(
         .scalar()
     ) or 0
 
-    # Get latest five student registrations
     recent_users = (
         db.query(User)
         .filter(User.role == "student")
@@ -258,6 +268,223 @@ def get_student_details(
             }
             for resume in resumes
         ]
+    }
+
+
+# ==========================================
+# STUDENT MANAGEMENT - UPDATE STUDENT
+# ==========================================
+
+@router.put("/students/{student_id}")
+def update_student_details(
+    student_id: int,
+    student_data: StudentUpdateRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+
+    # 1. Find the student account
+    student = (
+        db.query(User)
+        .filter(User.id == student_id)
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found."
+        )
+
+    # 2. Never allow editing Admin accounts
+    if student.role != "student":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin accounts cannot be edited through this endpoint."
+        )
+
+    # 3. Normalize the email address
+    new_email = str(student_data.email).strip().lower()
+
+    # 4. Check whether another account already uses this email
+    existing_user = (
+        db.query(User)
+        .filter(
+            func.lower(User.email) == new_email,
+            User.id != student_id
+        )
+        .first()
+    )
+
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="This email address is already registered."
+        )
+
+    # 5. Validate that text fields are not empty after trimming
+    full_name = student_data.full_name.strip()
+    college = student_data.college.strip()
+    degree = student_data.degree.strip()
+    branch = student_data.branch.strip()
+
+    if not all([full_name, college, degree, branch]):
+        raise HTTPException(
+            status_code=422,
+            detail="Name, college, degree and branch cannot be empty."
+        )
+
+    # 6. Update student details
+    try:
+
+        student.full_name = full_name
+        student.email = new_email
+        student.college = college
+        student.degree = degree
+        student.branch = branch
+        student.graduation_year = student_data.graduation_year
+
+        db.commit()
+        db.refresh(student)
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to update student details."
+        )
+
+    # 7. Return updated student information
+    return {
+        "message": "Student details updated successfully.",
+        "student": {
+            "id": student.id,
+            "full_name": student.full_name,
+            "email": student.email,
+            "role": student.role,
+            "college": student.college,
+            "degree": student.degree,
+            "branch": student.branch,
+            "graduation_year": student.graduation_year,
+            "created_at": student.created_at
+        }
+    }
+
+
+# ==========================================
+# STUDENT MANAGEMENT - DELETE STUDENT
+# ==========================================
+
+@router.delete("/students/{student_id}")
+def delete_student(
+    student_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+
+    # 1. Find the account
+    student = (
+        db.query(User)
+        .filter(User.id == student_id)
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found."
+        )
+
+    # 2. Never allow deletion of Admin accounts
+    if student.role != "student":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin accounts cannot be deleted through this endpoint."
+        )
+
+    # 3. Get all resumes belonging to the student
+    resumes = (
+        db.query(Resume)
+        .filter(Resume.user_id == student.id)
+        .all()
+    )
+
+    resume_ids = [resume.id for resume in resumes]
+
+    # Collect file paths before deleting database records
+    resume_file_paths = list({
+        os.path.abspath(resume.file_path)
+        for resume in resumes
+        if resume.file_path
+    })
+
+    try:
+
+        # 4. Delete ATS analysis records
+        db.query(ATSAnalysis).filter(
+            ATSAnalysis.user_id == student.id
+        ).delete(synchronize_session=False)
+
+        # 5. Delete extracted resume skills
+        if resume_ids:
+            db.query(ResumeSkill).filter(
+                ResumeSkill.resume_id.in_(resume_ids)
+            ).delete(synchronize_session=False)
+
+        # 6. Delete learning progress
+        db.query(LearningProgress).filter(
+            LearningProgress.user_id == student.id
+        ).delete(synchronize_session=False)
+
+        # 7. Delete resume records
+        db.query(Resume).filter(
+            Resume.user_id == student.id
+        ).delete(synchronize_session=False)
+
+        # 8. Delete student account
+        db.delete(student)
+
+        # 9. Commit database transaction
+        db.commit()
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete student. Database changes were rolled back."
+        )
+
+    # 10. Delete stored PDF files after successful commit
+    deleted_files = 0
+    failed_files = 0
+
+    for file_path in resume_file_paths:
+
+        if os.path.isfile(file_path):
+
+            try:
+                os.remove(file_path)
+                deleted_files += 1
+
+            except OSError:
+                failed_files += 1
+
+    return {
+        "message": "Student and associated records deleted successfully.",
+        "student_id": student_id,
+        "deleted_records": {
+            "ats_analyses": "Deleted",
+            "resume_skills": "Deleted",
+            "learning_progress": "Deleted",
+            "resumes": len(resume_ids),
+            "student_account": "Deleted"
+        },
+        "resume_files": {
+            "deleted": deleted_files,
+            "failed": failed_files
+        }
     }
 
 
@@ -450,13 +677,21 @@ def delete_resume(
 
     file_path = os.path.abspath(result.file_path)
 
-    db.query(ResumeSkill).filter(
-        ResumeSkill.resume_id == result.id
-    ).delete(synchronize_session=False)
-
-    db.delete(result)
-
     try:
+
+        # Explicitly delete related ATS reports
+        db.query(ATSAnalysis).filter(
+            ATSAnalysis.resume_id == result.id
+        ).delete(synchronize_session=False)
+
+        # Delete extracted skills
+        db.query(ResumeSkill).filter(
+            ResumeSkill.resume_id == result.id
+        ).delete(synchronize_session=False)
+
+        # Delete resume record
+        db.delete(result)
+
         db.commit()
 
     except Exception:

@@ -2,18 +2,28 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Database
+# ==========================================
+# DATABASE
+# ==========================================
+
 from app.database.connection import engine, Base
 
-# Database models
+# ==========================================
+# DATABASE MODELS
+# ==========================================
+
 from app.database.user_model import User
 from app.database.resume_model import Resume
 from app.database.skill_model import ResumeSkill
 from app.database.job_role_model import JobRole, JobRoleSkill
 from app.database.learning_progress_model import LearningProgress
 from app.database.resource_model import LearningResource
+from app.database.ats_analysis_model import ATSAnalysis
 
-# API routers
+# ==========================================
+# API ROUTERS
+# ==========================================
+
 from app.api.user import router as user_router
 from app.api.resume import router as resume_router
 from app.api.job_role import router as job_role_router
@@ -21,6 +31,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.admin import router as admin_router
 from app.api.learning_path import router as learning_path_router
 from app.api.resource import router as resource_router
+from app.api.ats import router as ats_router
 
 
 # ==========================================
@@ -68,6 +79,9 @@ app.include_router(dashboard_router)
 app.include_router(admin_router)
 app.include_router(learning_path_router)
 app.include_router(resource_router)
+
+# ATS Resume Checker
+app.include_router(ats_router)
 
 
 # ==========================================

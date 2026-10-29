@@ -42,7 +42,6 @@ function Resumes() {
       setLoading(true);
 
       const response = await api.get("/resumes/my-resumes");
-
       const resumeList = response.data.resumes || [];
 
       setResumes(
@@ -110,11 +109,9 @@ function Resumes() {
       setUploading(true);
       setMessage("");
 
-      // Step 1: Prepare PDF
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      // Step 2: Upload PDF
       const uploadResponse = await api.post(
         "/resumes/upload",
         formData
@@ -128,14 +125,12 @@ function Resumes() {
         );
       }
 
-      // Step 3: Extract skills automatically
       const skillsResponse = await api.post(
         `/resumes/${resumeId}/extract-skills`
       );
 
       const totalSkills = skillsResponse.data.total_skills ?? 0;
 
-      // Step 4: Clear selected file
       setSelectedFile(null);
 
       const fileInput = document.getElementById("resume-file-input");
@@ -144,7 +139,6 @@ function Resumes() {
         fileInput.value = "";
       }
 
-      // Step 5: Refresh resume history
       await fetchResumes();
 
       showMessage(
@@ -161,7 +155,6 @@ function Resumes() {
 
       showMessage(errorMessage, "error");
 
-      // Refresh history in case upload succeeded but extraction failed
       await fetchResumes();
     } finally {
       setUploading(false);
@@ -362,7 +355,6 @@ function Resumes() {
           {selectedFile && (
             <div className="selected-file">
               <FileText size={18} />
-
               <span>{selectedFile.name}</span>
 
               <button

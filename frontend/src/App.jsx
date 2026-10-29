@@ -4,7 +4,7 @@ import {
   Navigate,
   Outlet,
   Route,
-  Routes,
+  Routes
 } from "react-router-dom";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -29,6 +29,7 @@ import AdminLayout from "./layouts/AdminLayout";
 
 import StudentDashboard from "./pages/student/StudentDashboard";
 import Resumes from "./pages/student/Resumes";
+import ResumeOptimization from "./pages/student/ResumeOptimization";
 import JobMatches from "./pages/student/JobMatches";
 import LearningPath from "./pages/student/LearningPath";
 import StudentResources from "./pages/student/Resources";
@@ -41,6 +42,7 @@ import MyProfile from "./pages/student/MyProfile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Students from "./pages/admin/Students";
 import AdminResumes from "./pages/admin/Resumes";
+import AdminATSScore from "./pages/admin/AdminATSScore";
 import JobRoles from "./pages/admin/JobRoles";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import Resources from "./pages/admin/Resources";
@@ -53,7 +55,11 @@ function ProtectedRoute() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Checking your session...</div>;
+    return (
+      <div className="loading">
+        Checking your session...
+      </div>
+    );
   }
 
   if (!user) {
@@ -117,7 +123,11 @@ function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Loading application...</div>;
+    return (
+      <div className="loading">
+        Loading application...
+      </div>
+    );
   }
 
   const dashboardPath =
@@ -166,7 +176,10 @@ function AppRoutes() {
 
         <Route element={<StudentRoute />}>
 
-          <Route path="/student" element={<StudentLayout />}>
+          <Route
+            path="/student"
+            element={<StudentLayout />}
+          >
 
             <Route
               index
@@ -178,9 +191,18 @@ function AppRoutes() {
               element={<StudentDashboard />}
             />
 
+            {/* MY RESUMES */}
+
             <Route
               path="resumes"
               element={<Resumes />}
+            />
+
+            {/* STUDENT ATS SCORE */}
+
+            <Route
+              path="ats-score"
+              element={<ResumeOptimization />}
             />
 
             <Route
@@ -193,7 +215,7 @@ function AppRoutes() {
               element={<LearningPath />}
             />
 
-            {/* NEW: STUDENT LEARNING RESOURCES */}
+            {/* STUDENT LEARNING RESOURCES */}
 
             <Route
               path="resources"
@@ -215,7 +237,10 @@ function AppRoutes() {
 
         <Route element={<AdminRoute />}>
 
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route
+            path="/admin"
+            element={<AdminLayout />}
+          >
 
             <Route
               index
@@ -232,9 +257,18 @@ function AppRoutes() {
               element={<Students />}
             />
 
+            {/* ADMIN RESUME MANAGEMENT */}
+
             <Route
               path="resumes"
               element={<AdminResumes />}
+            />
+
+            {/* ADMIN ATS SCORE */}
+
+            <Route
+              path="ats-score"
+              element={<AdminATSScore />}
             />
 
             <Route

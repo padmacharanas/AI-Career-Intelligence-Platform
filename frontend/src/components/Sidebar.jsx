@@ -11,7 +11,8 @@ import {
   BrainCircuit,
   Users,
   ChartNoAxesCombined,
-  BookOpen
+  BookOpen,
+  ScanSearch
 } from "lucide-react";
 
 // ==========================================
@@ -28,6 +29,11 @@ const studentMenu = [
     name: "My Resumes",
     path: "/student/resumes",
     icon: FileText
+  },
+  {
+    name: "ATS Score",
+    path: "/student/ats-score",
+    icon: ScanSearch
   },
   {
     name: "Job Matches",
@@ -52,48 +58,53 @@ const studentMenu = [
 ];
 
 // ==========================================
+// ADMIN MENU
+// ==========================================
+
+const adminMenu = [
+  {
+    name: "Dashboard",
+    path: "/admin/dashboard",
+    icon: LayoutDashboard
+  },
+  {
+    name: "Student Management",
+    path: "/admin/students",
+    icon: Users
+  },
+  {
+    name: "Resume Management",
+    path: "/admin/resumes",
+    icon: FileText
+  },
+  {
+    name: "ATS Score",
+    path: "/admin/ats-score",
+    icon: ScanSearch
+  },
+  {
+    name: "Job Roles",
+    path: "/admin/job-roles",
+    icon: BriefcaseBusiness
+  },
+  {
+    name: "Analytics",
+    path: "/admin/analytics",
+    icon: ChartNoAxesCombined
+  },
+  {
+    name: "Resources",
+    path: "/admin/resources",
+    icon: GraduationCap
+  }
+];
+
+// ==========================================
 // SIDEBAR COMPONENT
 // ==========================================
 
 function Sidebar({ role = "student" }) {
   const isAdmin = role === "admin";
-
-  // ========================================
-  // ADMIN MENU
-  // ========================================
-
-  const adminMenu = [
-    {
-      name: "Dashboard",
-      path: "/admin/dashboard",
-      icon: LayoutDashboard
-    },
-    {
-      name: "Student Management",
-      path: "/admin/students",
-      icon: Users
-    },
-    {
-      name: "Resume Management",
-      path: "/admin/resumes",
-      icon: FileText
-    },
-    {
-      name: "Job Roles",
-      path: "/admin/job-roles",
-      icon: BriefcaseBusiness
-    },
-    {
-      name: "Analytics",
-      path: "/admin/analytics",
-      icon: ChartNoAxesCombined
-    },
-    {
-      name: "Resources",
-      path: "/admin/resources",
-      icon: GraduationCap
-    }
-  ];
 
   const menu = isAdmin ? adminMenu : studentMenu;
 
@@ -104,6 +115,7 @@ function Sidebar({ role = "student" }) {
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("user");
+
     window.location.href = "/login";
   };
 
@@ -149,6 +161,7 @@ function Sidebar({ role = "student" }) {
 
       <div className="sidebar-bottom">
         <button
+          type="button"
           className="nav-item"
           onClick={handleLogout}
         >
